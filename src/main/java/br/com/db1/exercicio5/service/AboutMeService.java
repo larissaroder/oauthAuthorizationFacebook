@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -21,31 +22,38 @@ class AboutMeService {
 
     private static final String ERROR_USER = "Obteu um erro ao obter os dados do usuário";
 
+    static final String ERROR_REST = "Ocorreu um erro ao acessar a url responsável pelo token, contacte a administração.";
+
     @Value("${url.about.me}")
     private String url;
 
-    String getListUser(String accessToken) throws ResponseException {
+    String getAboutMe(String accessToken) throws ResponseException {
 
-        RestTemplate restTemplate = new RestTemplate();
+        try {
+            RestTemplate restTemplate = new RestTemplate();
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("access_token", accessToken);
+            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
+                    .queryParam("access_token", accessToken);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<?> entity = new HttpEntity<>(headers);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
 
-        URI url = builder.build().encode().toUri();
-        HttpEntity<String> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                String.class);
+            URI url = builder.build().encode().toUri();
+            HttpEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    String.class);
 
-        if (ResponseUtils.isNotValidResponse(response)) {
-            throw new ResponseException(ERROR_USER);
+            if (ResponseUtils.isNotValidResponse(response)) {
+                throw new ResponseException(ERROR_USER);
+            }
+            return response.getBody();
+        } catch (HttpClientErrorException e) {
+            throw new ResponseException(ERROR_REST);
         }
-        return response.getBody();
+
     }
 }
